@@ -2,40 +2,57 @@ version: "{build}"
 
 os: unstable
 
+clone_depth: 1
+
 environment:
   nodejs_version: "6"
+  CERT_PASSWORD:
+    secure: BOXjWrY24hdw8EhsmLkP5RVxG/aY/16gnAt//DlVIHOadhfJWHgQfh+qI7oUkgP2
 
 install:
   - ps: Install-Product node $env:nodejs_version
-  - npm i -g  npm@5.6.0
-  - npm install
-  - cd windows && npm install && cd..
+  - npm i -g  npm@5.8.0
+  - npm ci
+  - cd windows && npm ci && cd..
 
 before_build:
   - npm run lint windows
 
 build_script:
   - cd windows
-  - npm run build
+  - npm run pack
+  - npm run dist 2> $null
+  - npm run choco
 
 test_script:
   - cd ..
   - npm run test:windows
 
 cache:
-  - node_modules
-  - windows\node_modules
   - '%APPDATA%\npm-cache'
 
 artifacts:
-  - path: windows\build\installers\*.exe
+  - path: windows\build\installers\headset-*-setup.exe
     name: HeadsetApp
+  - path: windows\build\installers\headset-*-full.nupkg
+    name: HeadsetNupkg
+  - path: windows\build\installers\RELEASES
+    name: HeadsetReleases
+  - path: windows\build\headset.*.nupkg
+    name: HeadsetChoco
 
 deploy:
   - provider: GitHub
-    artifact: HeadsetApp
+    artifact: HeadsetApp, HeadsetNupkg, HeadsetReleases
     auth_token: $(GITHUB_TOKEN)
     draft: true
     description: ''
+    on:
+      appveyor_repo_tag: true
+  - provider: NuGet
+    server: https://push.chocolatey.org/
+    artifact: HeadsetChoco
+    skip_symbols: true
+    api_key: $(CHOCO_TOKEN)
     on:
       appveyor_repo_tag: true

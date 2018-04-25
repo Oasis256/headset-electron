@@ -5,6 +5,7 @@ const { exec } = require('child_process');
 const windowStateKeeper = require('electron-window-state');
 const squirrel = require('electron-squirrel-startup');
 const debug = require('debug');
+const GhReleases = require('headset-autoupdater');
 
 const logger = debug('headset');
 const logPlayer2Win = debug('headset:player2Win');
@@ -34,10 +35,7 @@ const shouldQuit = app.makeSingleInstance(() => {
   }
 });
 
-if (shouldQuit || squirrel) {
-  app.quit();
-  return;
-}
+if (shouldQuit || squirrel) app.exit();
 
 const start = () => {
   logger('Starting Headset');
@@ -64,6 +62,8 @@ const start = () => {
     win.loadURL('https://danielravina.github.io/headset/app/');
   }
 
+  new GhReleases();
+
   win.webContents.on('did-finish-load', () => {
     logger('Main window finished loading');
     if (player) return;
@@ -86,6 +86,7 @@ const start = () => {
 
     player.webContents.on('did-finish-load', () => {
       logger('Player window finished loading');
+      win.focus();
     });
 
     player.on('close', (e) => {
